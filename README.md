@@ -1,32 +1,46 @@
-forecast <img src="man/figures/logo.png" align="right" />
+Exponential smoothing state space model
 ======================
-
-![R build status](https://github.com/robjhyndman/forecast/workflows/R-CMD-check/badge.svg)
-[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/forecast)](https://cran.r-project.org/package=forecast)
-[![cran checks](https://cranchecks.info/badges/worst/forecast)](https://cran.r-project.org/web/checks/check_results_forecast.html)
-[![Lifecycle: retired](https://img.shields.io/badge/lifecycle-retired-orange.svg)](https://www.tidyverse.org/lifecycle/#retired)
-[![Downloads](https://cranlogs.r-pkg.org/badges/forecast)](https://cran.r-project.org/package=forecast)
-[![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
-
-
-The R package *forecast* provides methods and tools for displaying and analysing univariate time series forecasts including exponential smoothing via state space models and automatic ARIMA modelling.
-
-This package is now retired in favour of the [fable](http://fable.tidyverts.org/) package. The forecast package will remain in its current state, and maintained with bug fixes only. For the latest features and development, we recommend forecasting with the fable package.
-
-## Installation
-You can install the **stable** version from
-[CRAN](https://cran.r-project.org/package=forecast).
+The methodology is fully automatic. The only required argument for ets is the time series. The model is chosen automatically if not specified.
 
 ```s
-install.packages('forecast', dependencies = TRUE)
+ets <- function(y, model="ZZZ", damped=NULL, alpha=NULL, beta=NULL, gamma=NULL, phi=NULL, additive.only=FALSE, lambda=NULL, biasadj=FALSE, lower=c(rep(0.0001, 3), 0.8), upper=c(rep(0.9999, 3), 0.98), opt.crit=c("lik", "amse", "mse", "sigma", "mae"), nmse=3, bounds=c("both", "usual", "admissible"), ic=c("aicc", "aic", "bic"), restrict=TRUE, allow.multiplicative.trend=FALSE, use.initial.values=FALSE, na.action = c("na.contiguous", "na.interp", "na.fail"), ...)
 ```
 
+#### Parameter explanation:
+* `y` = a numeric vector or time series of class `ts`
+* `model` Usually a three-character string identifying method using the
+framework terminology such as:
+  1. The first letter denotes the error type (`A`, `M` or `Z`)
+  2. The second denotes the trend type (`N`,`A`, `M` or `Z`)
+  3. the third letter denotes the season type (`N`,`A`, `M` or `Z`)
+
+  In all cases, `N`=none, `A`=additive, `M`=multiplicative and `Z`=automatically selected. So, for example, `ANN` is simple exponential smoothing with additive errors, `MAM` is multiplicative Holt-Winters' method with multiplicative errors, and so on.
+* `damped` If TRUE, use a damped trend (either additive or multiplicative). If NULL, both damped and non-damped trends will be tried and the best model (according to the information criterion `ic`) returned.
+* `alpha` Value of alpha. If NULL, it is estimated.
+* `beta` Value of beta. If NULL, it is estimated.
+* `gamma` Value of gamma. If NULL, it is estimated.
+* `phi` Value of phi. If NULL, it is estimated.
+* `additive.only` If TRUE, will only consider additive models. Default is FALSE.
+* `lambda` Box-Cox transformation parameter. If `lambda="auto"` then a transformation is automatically selected using `BoxCox.lambda`. The transformation is ignored if NULL. Otherwise, data transformed before model is estimated. When `lambda` is specified, `additive.only` is set to `TRUE`.
+* `lower` Lower bounds for the parameters (alpha, beta, gamma, phi)
+* `upper` Upper bounds for the parameters (alpha, beta, gamma, phi)
+* `opt.crit` Optimization criterion. One of "mse" (Mean Square Error), "amse" (Average MSE over first \code{nmse} forecast horizons), "sigma" (Standard deviation of residuals), "mae" (Mean of absolute residuals), or "lik" (Log-likelihood, the default).
+* `nmse` Number of steps for average multistep MSE (1<=`nmse` <=30).
+* `bounds` Type of parameter space to impose: `"usual" ` indicates all parameters must lie between specified lower and upper bounds; `"admissible"` indicates parameters must lie in the admissible space; `"both"` (default) takes the intersection of these regions.
+* `ic` Information criterion to be used in model selection.
+* `restrict` If `TRUE` (default), the models with infinite variance will not be allowed.
+* `allow.multiplicative.trend` If `TRUE`, models with multiplicative trend are allowed when searching for a model. Otherwise, the model space excludes them. This argument is ignored if a multiplicative trend model is explicitly requested (e.g., using `model="MMN"`).
+* `use.initial.values` If `TRUE` and `model` is of class `"ets"`, then the initial values in the model are also not re-estimated.
+* `na.action` A function which indicates what should happen when the data contains NA values. By default, the largest contiguous portion of the time-series will be used.
+
+## Installation
+
 You can install the **development** version from
-[Github](https://github.com/robjhyndman/forecast)
+[Github](https://github.com/ikhwan12/forecast)
 
 ```s
 # install.packages("remotes")
-remotes::install_github("robjhyndman/forecast")
+remotes::install_github("ikhwan12/forecast")
 ```
 
 ## Usage
@@ -36,59 +50,10 @@ library(forecast)
 library(ggplot2)
 
 # ETS forecasts
-USAccDeaths %>%
-  ets() %>%
-  forecast() %>%
-  autoplot()
+fit <- ets(bss, model = "MNA")
+plot(forecast(fit))
 
-# Automatic ARIMA forecasts
-WWWusage %>%
-  auto.arima() %>%
-  forecast(h=20) %>%
-  autoplot()
-
-# ARFIMA forecasts
-library(fracdiff)
-x <- fracdiff.sim( 100, ma=-.4, d=.3)$series
-arfima(x) %>%
-  forecast(h=30) %>%
-  autoplot()
-
-# Forecasting with STL
-USAccDeaths %>%
-  stlm(modelfunction=ar) %>%
-  forecast(h=36) %>%
-  autoplot()
-
-AirPassengers %>%
-  stlf(lambda=0) %>%
-  autoplot()
-
-USAccDeaths %>%
-  stl(s.window='periodic') %>%
-  forecast() %>%
-  autoplot()
-
-# TBATS forecasts
-USAccDeaths %>%
-  tbats() %>%
-  forecast() %>%
-  autoplot()
-
-taylor %>%
-  tbats() %>%
-  forecast() %>%
-  autoplot()
+#See the prediction result
+res = forecast(fit)
+res
 ```
-
-## For more information
-
-  * Get started in forecasting with the online textbook at http://OTexts.org/fpp2/
-  * Read the Hyndsight blog at https://robjhyndman.com/hyndsight/
-  * Ask forecasting questions on http://stats.stackexchange.com/tags/forecasting
-  * Ask R questions on http://stackoverflow.com/tags/forecasting+r
-  * Join the International Institute of Forecasters: http://forecasters.org/
-
-## License
-
-This package is free and open source software, licensed under GPL-3.
